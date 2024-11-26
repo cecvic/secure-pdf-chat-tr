@@ -3,7 +3,9 @@ import { Chat } from "@/components/chat";
 import DropZone from "@/components/ui/dropZone";
 import useUploadPdf from "@/hooks/useUploadPdf";
 import { nanoid } from "ai";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
   const [sessionId, setSessionId] = useState<string>(`session-id-${nanoid()}`);
@@ -18,6 +20,11 @@ export default function Home() {
     await onUpload(filesArray);
   };
 
+  const handleDeleteFile = async (fileName: string) => {
+    // TODO: Implement delete from Pinecone
+    console.log("Deleting file:", fileName);
+  };
+
   return (
     <main className="relative flex min-h-screen flex-col">
       <div className="flex-none">
@@ -27,8 +34,43 @@ export default function Home() {
       </div>
       
       <div className="flex flex-1 gap-4 p-4">
-        {/* Left side - Chat */}
-        <div className="w-1/2 flex flex-col">
+        {/* Left side - Chat and File Management */}
+        <div className="w-1/2 flex flex-col gap-4">
+          {/* File Management Section */}
+          <div className="rounded-lg border bg-background p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-semibold">Uploaded Files</h2>
+              <span className="text-xs text-muted-foreground">
+                {files.length} file(s)
+              </span>
+            </div>
+            <div className="space-y-2 max-h-32 overflow-y-auto">
+              {files.map((file) => (
+                <div
+                  key={file.name}
+                  className="flex items-center justify-between py-2 px-3 text-sm bg-muted/50 rounded"
+                >
+                  <span className="truncate flex-1">{file.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDeleteFile(file.name)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    <span className="sr-only">Delete file</span>
+                  </Button>
+                </div>
+              ))}
+              {files.length === 0 && (
+                <div className="text-sm text-muted-foreground text-center py-2">
+                  No files uploaded
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Chat Section */}
           <Chat sessionId={sessionId} isUploading={isUploading} />
         </div>
 
