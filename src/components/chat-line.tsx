@@ -57,7 +57,7 @@ export function ChatLine({ role = "assistant", content, sources }: ChatLineProps
                 </AccordionTrigger>
                 <AccordionContent className="text-xs">
                   <ReactMarkdown linkTarget="_blank">
-                    {formattedText(source)}
+                    {source}
                   </ReactMarkdown>
                 </AccordionContent>
               </AccordionItem>

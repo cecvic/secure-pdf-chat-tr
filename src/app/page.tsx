@@ -1,36 +1,55 @@
 "use client";
 import { Chat } from "@/components/chat";
+import { useFileManager } from "@/hooks/useFileManager";
 import DropZone from "@/components/ui/dropZone";
-import useUploadPdf from "@/hooks/useUploadPdf";
 import { nanoid } from "ai";
-import { Trash2 } from "lucide-react";
+import { Loader2, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "sonner";
+import Image from "next/image";
 
 export default function Home() {
-  const [sessionId, setSessionId] = useState<string>(`session-id-${nanoid()}`);
-  const { onUpload, isUploading } = useUploadPdf(sessionId);
-  const [files, setFiles] = useState<File[]>([]);
+  const [sessionId] = useState<string>(`session-id-${nanoid()}`);
+  const { files, isUploading, isDeleting, onUpload, onDelete } = useFileManager({
+    sessionId,
+  });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files === null) return;
     const filesArray = Array.from(files);
-    setFiles(filesArray);
     await onUpload(filesArray);
+    setSelectedFile(filesArray[0]);
   };
 
   const handleDeleteFile = async (fileName: string) => {
-    // TODO: Implement delete from Pinecone
-    console.log("Deleting file:", fileName);
+    await onDelete(fileName);
+    if (selectedFile?.name === fileName) {
+      setSelectedFile(null);
+    }
+  };
+
+  const handleReset = () => {
+    setSelectedFile(null);
   };
 
   return (
     <main className="relative flex min-h-screen flex-col">
       <div className="flex-none">
-        <h1 className="text-3xl font-bold text-center py-4">
-          Secure AI PDF Chat
-        </h1>
+        <div className="flex items-center justify-center gap-2 py-4">
+          <Image 
+            src="/Trendhubs.png"
+            alt="Trendhubs Logo"
+            width={40}
+            height={40}
+            className="object-contain"
+          />
+          <h1 className="text-3xl font-bold">
+            Trendhubs PDF Chat
+          </h1>
+        </div>
       </div>
       
       <div className="flex flex-1 gap-4 p-4">
@@ -51,15 +70,33 @@ export default function Home() {
                   className="flex items-center justify-between py-2 px-3 text-sm bg-muted/50 rounded"
                 >
                   <span className="truncate flex-1">{file.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDeleteFile(file.name)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span className="sr-only">Delete file</span>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {selectedFile?.name !== file.name && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-blue-500"
+                        onClick={() => setSelectedFile(file)}
+                      >
+                        <Upload className="h-4 w-4" />
+                        <span className="sr-only">View file</span>
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDeleteFile(file.name)}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                      <span className="sr-only">Delete file</span>
+                    </Button>
+                  </div>
                 </div>
               ))}
               {files.length === 0 && (
@@ -76,13 +113,25 @@ export default function Home() {
 
         {/* Right side - PDF Viewer/Dropzone */}
         <div className="w-1/2 flex flex-col">
-          <div className="rounded-lg border border-gray-200 h-full">
-            {files.length > 0 ? (
-              <iframe
-                src={URL.createObjectURL(files[0])}
-                className="w-full h-full rounded-lg"
-                title="PDF Viewer"
-              />
+          <div className="rounded-lg border border-gray-200 h-full relative">
+            {selectedFile ? (
+              <>
+                <div className="absolute top-2 right-2 z-10">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleReset}
+                    className="h-8"
+                  >
+                    Upload Another PDF
+                  </Button>
+                </div>
+                <iframe
+                  src={URL.createObjectURL(selectedFile)}
+                  className="w-full h-full rounded-lg"
+                  title="PDF Viewer"
+                />
+              </>
             ) : (
               <div className="h-full flex items-center justify-center">
                 <DropZone
@@ -95,6 +144,8 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      <Toaster position="bottom-right" />
     </main>
   );
 }
